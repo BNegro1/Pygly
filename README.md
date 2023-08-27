@@ -39,3 +39,8 @@ Luego, la función convierte los tokens en cadenas de texto y crea una matriz TF
 3. Ingresa el nombre de dos archivos de código con extensión ".py" cuando se solicite.
 4. El código calculará la similitud entre los dos fragmentos de código y mostrará el resultado en forma de porcentaje de similitud en la salida estándar.
 
+## TODO
+
+1. GUI.
+2. Optimización.
+3. -
