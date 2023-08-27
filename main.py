@@ -1,43 +1,62 @@
-import difflib
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+import re
 import os
-def leerArchivo(arch):
-    if not os.path.isfile(arch):
-        print(f"El archivo {arch} no existe.")
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+nltk.download('punkt')
+nltk.download('stopwords')
+
+def cargarTexto(archivo):
+    try:
+        with open(archivo, 'r', encoding='utf-8') as f:
+            texto = f.read()
+        return texto
+    except FileNotFoundError:
+        print(f"El archivo {archivo} no existe.")
         return None
-    with open(arch, 'r', encoding='utf-8') as f:
-        contenido = f.read()
-        
-    if os.stat(arch).st_size == 0:
-        print(f"El archivo {arch} está vacio.")
-        return None
     
-    return contenido
-
-def porcentajePlag(archivo1, archivo2):
-    archContenido1 = leerArchivo(archivo1)
-    archContenido2 = leerArchivo(archivo2)
-    if archContenido1 is not None and archContenido2 is not None:
-        r1 = difflib.SequenceMatcher(None, archContenido1, archContenido2)
-        similitud1 = r1.ratio() * 100
-        r2 = difflib.SequenceMatcher(None, archContenido2, archContenido1)
-        similitud2 = r2.ratio() * 100
-    
-        promSimi = ((similitud1 + similitud2)/2)
-    
-        if promSimi == 100:
-            print("Plagio. Ratio de similitud promedio: 100.0%")
-        elif promSimi >= 60:
-            print("Posible plagio, ratio de similitud promedio:", round(promSimi, 2), "%")
-        else:
-            print("Plagio improbable, ratio de similitud promedio:", round(promSimi, 2), "%")
+def limpiarTexto(texto):
+    texto = re.sub(r'\s+', ' ', texto)
+    texto = re.sub(r'#.*\n', '\n', texto)    
+    return texto
 
 
-print("Calcular de similitud entre dos archivos .py")
-while True:
-    ar1 = input("Ingrese el nombre del archivo 1: ")
-    ar2 = input("Ingrese el nombre del archivo 2: ")
+def calcularSimilitud(texto1, texto2):
+    # Tokenización y eliminación de "stopwords"
+    stop_words = set(stopwords.words('english'))
+    stemmer = PorterStemmer()
+
+    listaTokens1 = []
+    for palabra in word_tokenize(texto1):
+        if palabra.lower() not in stop_words:
+            listaTokens1.append(stemmer.stem(palabra.lower()))
+
+    listaTokens2 = []
+    for palabra in word_tokenize(texto2):
+        if palabra.lower() not in stop_words:
+            listaTokens2.append(stemmer.stem(palabra.lower()))
+    # Convertir los tokens a cadenas de texto
+    proceso1 = ' '.join(listaTokens1)
+    proceso2 = ' '.join(listaTokens2)
+    vectorizar = TfidfVectorizer()
+    matristfidf = vectorizar.fit_transform([proceso1, proceso2])
+    calculaSimilitud = cosine_similarity(matristfidf[0], matristfidf[1])[0][0] * 100
+    return calculaSimilitud
+
+def main():
+    print("Similitud entre codigos")
+    a1 = input("Ingrese el nombre del archivo 1: ")
+    a2 = input("Ingrese el nombre del archivo 2: ")
+    t1 = cargarTexto(a1)
+    t2 = cargarTexto(a2)
     
-    if len(ar1) == 0 or len(ar2) == 0:
-        print("Ingrese un archivo.")
-    else:
-        porcentajePlag(ar1, ar2)
+    if t1 is not None and t2 is not None:
+        t1 = limpiarTexto(t1)
+        t2 = limpiarTexto(t2)
+        similitud = calcularSimilitud(t1, t2)
+        print(f"Porcentaje de similitud: {similitud:.2f}%")
+main()
